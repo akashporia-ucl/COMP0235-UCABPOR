@@ -1,0 +1,41 @@
+---
+# Playbook 30: Download Datasets to Raw Folders
+# This playbook downloads dataset files into designated raw folders on the first worker node.
+
+- name: Notify user about Playbook 30
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 30: Download Datasets to Raw Folders - This playbook ensures raw directories exist and downloads datasets to the raw folders on the first worker node."
+
+- name: Download datasets to raw folders
+  hosts: workers[0]  # Only the first worker performs downloads
+  become: true
+  vars:
+    datasets:
+      - name: ecoli
+        url: "https://ftp.ebi.ac.uk/pub/databases/alphafold/latest/UP000000625_83333_ECOLI_v4.tar"
+        raw_path: "/mnt/minio/dataset/ecoli/raw"
+      - name: human
+        url: "https://ftp.ebi.ac.uk/pub/databases/alphafold/latest/UP000005640_9606_HUMAN_v4.tar"
+        raw_path: "/mnt/minio/dataset/human/raw"
+
+  tasks:
+    # Step 1: Ensure raw directories exist
+    - name: Ensure raw directories exist
+      # Create raw directories for each dataset with appropriate permissions.
+      ansible.builtin.file:
+        path: "{{ item.raw_path }}"
+        state: directory
+        mode: "0777"
+      loop: "{{ datasets }}"
+
+    # Step 2: Download dataset files
+    - name: Download dataset files
+      # Download the dataset tar files into the corresponding raw directories.
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "{{ item.raw_path }}/{{ item.name }}.tar"
+        mode: "0644"
+      loop: "{{ datasets }}"

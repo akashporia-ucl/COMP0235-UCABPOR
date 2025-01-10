@@ -1,0 +1,47 @@
+---
+# Playbook 33: Run Spark Job
+# This playbook executes a Spark job using `spark-submit` on the management node for the E. coli dataset
+# and displays the output of the job.
+
+- name: Notify user about Playbook 33
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 33: Run Spark Job - This playbook executes a Spark job for the E. coli dataset using spark-submit on the management node."
+
+- name: Run Spark Job
+  hosts: management
+  become_user: root
+  become: yes
+  tasks:
+    # Step 1: Execute spark-submit command for the E. coli dataset
+    - name: Execute spark-submit command for ecoli dataset
+      # Submit a Spark job for the E. coli dataset using the provided parameters and configuration.
+      shell: |
+        export SPARK_HOME=/home/almalinux/spark-3.5.3-bin-hadoop3-scala2.13 &&
+        export PATH=$SPARK_HOME/bin:$PATH &&
+        cd /mnt/minio/Merizo/Merizo &&
+        $SPARK_HOME/bin/spark-submit \
+        --master spark://management:7077 \
+        --deploy-mode client \
+        --executor-memory 24G \
+        --executor-cores 2 \
+        --num-executors 6 \
+        --conf spark.rpc.message.maxSize=2047 \
+        --conf spark.network.timeout=600s \
+        --conf spark.eventLog.enabled=true \
+        --conf spark.eventLog.dir=/mnt/minio/logs \
+        --conf spark.executor.heartbeatInterval=60s \
+        --conf spark.ui.port=4050 \
+        --files results_parser.py \
+        pipeline_script.py /mnt/minio/dataset/ecoli/prepared /mnt/minio/dataset/ecoli/output
+      args:
+        chdir: /mnt/minio/Merizo/Merizo
+      register: spark_submit_output
+
+    # Step 2: Display the output of the Spark job
+    - name: Display the output of the Spark job
+      # Debug the output of the spark-submit command for verification.
+      debug:
+        msg: "{{ spark_submit_output.stdout }}"

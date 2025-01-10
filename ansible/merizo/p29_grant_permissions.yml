@@ -1,0 +1,52 @@
+---
+# Playbook 29: Grant Specific Permissions to Selected Paths
+# This playbook ensures that the necessary directories and files exist, sets specific permissions,
+# and verifies them for the Merizo project on management and worker nodes.
+
+- name: Notify user about Playbook 29
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 29: Grant Specific Permissions to Selected Paths - This playbook ensures the necessary directories and files exist for the Merizo project and sets appropriate permissions on management and worker nodes."
+
+- name: Grant specific permissions to selected paths
+  hosts: management, workers
+  become: yes
+  tasks:
+    # Step 1: Ensure the /mnt/minio/Merizo/Merizo directory exists
+    - name: Ensure /mnt/minio/Merizo/Merizo directory exists
+      # Ensure the directory exists and set full permissions (777).
+      ansible.builtin.file:
+        path: /mnt/minio/Merizo/Merizo
+        state: directory
+        mode: '0777'
+
+    # Step 2: Set permissions for all files in /mnt/minio/Merizo/Merizo
+    - name: Set permissions for all files in /mnt/minio/Merizo/Merizo
+      # Recursively set full permissions (777) on all files and subdirectories.
+      ansible.builtin.shell: chmod -R 0777 /mnt/minio/Merizo/Merizo
+
+    # Step 3: Ensure the /mnt/minio/Merizo/merizo_search/merizo_search/merizo.py file exists
+    - name: Ensure /mnt/minio/Merizo/merizo_search/merizo_search/merizo.py file exists
+      # Ensure the specific file exists and set full permissions (777).
+      ansible.builtin.file:
+        path: /mnt/minio/Merizo/merizo_search/merizo_search/merizo.py
+        state: file
+        mode: '0777'
+
+    # Step 4: Verify permissions for /mnt/minio/Merizo/Merizo directory
+    - name: Verify permissions for /mnt/minio/Merizo/Merizo
+      # List the directory to confirm permissions are set correctly.
+      ansible.builtin.shell: ls -ld /mnt/minio/Merizo/Merizo
+
+    # Step 5: Verify permissions for /mnt/minio/Merizo/merizo_search/merizo_search/merizo.py
+    - name: Verify permissions for /mnt/minio/Merizo/merizo_search/merizo_search/merizo.py
+      # List the file to confirm permissions are set correctly.
+      ansible.builtin.shell: ls -l /mnt/minio/Merizo/merizo_search/merizo_search/merizo.py
+
+    # Step 6: Grant full permissions on /mnt/minio directory
+    - name: Grant full permissions on /mnt/minio
+      # Set full permissions (777) on the `/mnt/minio` directory.
+      ansible.builtin.command:
+        cmd: chmod 777 /mnt/minio

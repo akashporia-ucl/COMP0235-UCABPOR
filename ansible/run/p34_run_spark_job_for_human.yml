@@ -1,0 +1,47 @@
+---
+# Playbook 34: Run Spark Job for Human Dataset
+# This playbook executes a Spark job using `spark-submit` on the management node for the human dataset
+# and displays the output of the job.
+
+- name: Notify user about Playbook 34
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 34: Run Spark Job for Human Dataset - This playbook executes a Spark job for the human dataset using spark-submit on the management node."
+
+- name: Run Spark Job for Human Dataset
+  hosts: management
+  become_user: root
+  become: yes
+  tasks:
+    # Step 1: Execute spark-submit command for the human dataset
+    - name: Execute spark-submit command for human dataset
+      # Submit a Spark job for the human dataset using the provided parameters and configuration.
+      shell: |
+        export SPARK_HOME=/home/almalinux/spark-3.5.3-bin-hadoop3-scala2.13 &&
+        export PATH=$SPARK_HOME/bin:$PATH &&
+        cd /mnt/minio/Merizo/Merizo &&
+        $SPARK_HOME/bin/spark-submit \
+        --master spark://management:7077 \
+        --deploy-mode client \
+        --executor-memory 24G \
+        --executor-cores 2 \
+        --num-executors 6 \
+        --conf spark.rpc.message.maxSize=2047 \
+        --conf spark.network.timeout=600s \
+        --conf spark.eventLog.enabled=true \
+        --conf spark.eventLog.dir=/mnt/minio/logs \
+        --conf spark.executor.heartbeatInterval=60s \
+        --conf spark.ui.port=4050 \
+        --files results_parser.py \
+        pipeline_script.py /mnt/minio/dataset/human/prepared /mnt/minio/dataset/human/output
+      args:
+        chdir: /mnt/minio/Merizo/Merizo
+      register: spark_submit_output
+
+    # Step 2: Display the output of the Spark job
+    - name: Display the output of the Spark job
+      # Debug the output of the spark-submit command for verification.
+      debug:
+        msg: "{{ spark_submit_output.stdout }}"

@@ -1,0 +1,12 @@
+---
+- name: Run all required playbooks in sequence to setup Spark
+  hosts: localhost
+  gather_facts: no
+  tasks: []
+
+- import_playbook: p17_install_configure_spark.yml
+- import_playbook: p18_add_spark_path.yml  
+- import_playbook: p19_setup_firewall_for_cluster.yml  
+- import_playbook: p20_generate_ssh_keys.yml 
+- import_playbook: p22_start_spark_master.yml
+- import_playbook: p23_start_spark_workers.yml

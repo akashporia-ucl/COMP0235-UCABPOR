@@ -1,0 +1,35 @@
+---
+# Playbook 27: Clone Merizo Repository
+# This playbook ensures the Merizo directory exists and clones the Merizo repository from GitHub
+# into the designated directory on the management nodes.
+
+- name: Notify user about Playbook 27
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 27: Clone Merizo Repository - This playbook ensures the Merizo directory exists and clones the repository from GitHub into the management node."
+
+- name: Clone Merizo repository on management nodes
+  hosts: management
+  become: true
+  tasks:
+    # Step 1: Ensure the Merizo directory exists
+    - name: Ensure Merizo directory exists
+      # Create the directory `/mnt/minio/Merizo/Merizo` if it does not exist, with proper permissions.
+      ansible.builtin.file:
+        path: /mnt/minio/Merizo/Merizo
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    # Step 2: Clone the Merizo repository from GitHub
+    - name: Clone the Merizo repository from GitHub
+      # Clone the repository into the `/mnt/minio/Merizo/Merizo` directory.
+      ansible.builtin.git:
+        repo: https://github.com/akashporia-ucl/Merizo.git
+        dest: /mnt/minio/Merizo/Merizo
+        version: main  # Checkout the main branch
+        force: yes     # Force overwrite of the existing content if necessary
+        update: yes    # Update the repository if it already exists

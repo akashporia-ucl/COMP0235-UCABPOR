@@ -1,0 +1,60 @@
+---
+# Playbook 10: Fix MinIO Setup
+# This playbook ensures the MinIO setup is correctly configured by verifying the data directory's existence, ownership,
+# permissions, and validating disk space. It also restarts the MinIO service to ensure a clean state.
+
+- name: Notify user about Playbook 10
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 10: Fix MinIO Setup - This playbook verifies and fixes the MinIO setup, including directory permissions, ownership, and service state."
+
+- name: Fix MinIO Setup
+  hosts: all  # Replace 'all' with the specific group or inventory name for storage nodes
+  become: true
+  tasks:
+    # Step 1: Ensure the MinIO data directory exists
+    - name: Create MinIO data directory
+      # Create the `/data/minio` directory if it doesn't already exist and set appropriate ownership and permissions.
+      ansible.builtin.file:
+        path: /data/minio
+        state: directory
+        owner: minio-user
+        group: minio-user
+        mode: '0700'
+
+    # Step 2: Restart the MinIO service
+    - name: Restart MinIO service
+      # Restart the MinIO service to release any locked ports and ensure it is in a clean state.
+      ansible.builtin.systemd:
+        name: minio
+        state: restarted
+        enabled: true
+
+    # Step 3: Ensure proper ownership of the data directory
+    - name: Ensure MinIO data directory ownership
+      # Recursively set ownership of `/data/minio` to `minio-user`.
+      ansible.builtin.shell: chown -R minio-user:minio-user /data/minio
+      args:
+        executable: /bin/bash
+
+    # Step 4: Ensure proper permissions of the data directory
+    - name: Ensure MinIO data directory permissions
+      # Recursively set permissions of `/data/minio` to `700` (only accessible by the owner).
+      ansible.builtin.shell: chmod -R 700 /data/minio
+      args:
+        executable: /bin/bash
+
+    # Step 5: Validate available disk space
+    - name: Check disk space for MinIO data directory
+      # Validate the available disk space for the `/data/minio` directory.
+      ansible.builtin.shell: df -h /data/minio
+      register: disk_space
+      changed_when: false  # Mark this task as not changing the state.
+
+    # Step 6: Debug the disk space output
+    - name: Debug disk space output
+      # Display the disk space information for `/data/minio`.
+      ansible.builtin.debug:
+        msg: "{{ disk_space.stdout }}"

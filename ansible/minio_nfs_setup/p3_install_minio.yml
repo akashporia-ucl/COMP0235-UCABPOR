@@ -1,0 +1,183 @@
+---
+# Playbook 3: Set Up Minio
+# This playbook installs and configures the Minio server and client. It includes setting up users and directories,
+# installing necessary binaries, configuring TLS certificates, and ensuring the Minio service is started and functional.
+
+- name: Notify user about Playbook 3
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 3: Set Up Minio - This playbook installs and configures the Minio server and client with TLS."
+
+- name: Set up Minio
+  become: true
+  become_user: root
+  hosts: all
+  tasks:
+    - name: Create Minio group
+      # Create a system group for the Minio user.
+      ansible.builtin.group:
+        name: minio-user
+        state: present
+
+    - name: Create Minio user
+      # Create a Minio user and add it to the Minio group.
+      ansible.builtin.user:
+        name: minio-user
+        append: true
+        groups: minio-user
+        password: "!"  # Lock the password for security.
+        password_lock: true
+        state: present
+
+    - name: Copy TLS generation script
+      # Copy the script used to generate TLS certificates for Minio.
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../files/generate_certs.sh"
+        dest: "/root/generate_certs.sh"
+        mode: "0700"
+
+    - name: Generate TLS certificates
+      # Execute the TLS certificate generation script with the current host's inventory hostname.
+      ansible.builtin.shell: "bash /root/generate_certs.sh {{ inventory_hostname }}"
+
+    - name: Create Minio settings directory
+      # Create the directory to store Minio server settings.
+      ansible.builtin.file:
+        path: "/home/minio-user/.minio"
+        state: directory
+        owner: minio-user
+        group: minio-user
+
+    - name: Create Minio TLS certificates directory
+      # Create a directory to store Minio server TLS certificates.
+      ansible.builtin.file:
+        path: "/home/minio-user/.minio/certs"
+        state: directory
+        owner: minio-user
+        group: minio-user
+
+    - name: Create Minio client settings directory
+      # Create the directory for the Minio client settings.
+      ansible.builtin.file:
+        path: "/home/almalinux/.mc"
+        state: directory
+        owner: almalinux
+        group: almalinux
+
+    - name: Create Minio client TLS certificates directory
+      # Create the directory for Minio client TLS certificates.
+      ansible.builtin.file:
+        path: "/home/almalinux/.mc/certs"
+        state: directory
+        owner: almalinux
+        group: almalinux
+
+    - name: Create Minio client CA directory
+      # Create the directory for Minio client CA certificates.
+      ansible.builtin.file:
+        path: "/home/almalinux/.mc/certs/CAs"
+        state: directory
+        owner: almalinux
+        group: almalinux
+
+    - name: Copy the server certificate to Minio directory
+      # Copy the generated TLS certificate for the Minio server.
+      ansible.builtin.copy:
+        src: "/root/minio.crt"
+        dest: "/home/minio-user/.minio/certs/public.crt"
+        remote_src: true
+        owner: minio-user
+        group: minio-user
+        mode: "0600"
+
+    - name: Copy the private key to Minio directory
+      # Copy the private key for the Minio server.
+      ansible.builtin.copy:
+        src: "/root/minio.key"
+        dest: "/home/minio-user/.minio/certs/private.key"
+        remote_src: true
+        owner: minio-user
+        group: minio-user
+        mode: "0600"
+
+    - name: Copy the certificate to the Minio client directory
+      # Copy the server certificate for Minio client use.
+      ansible.builtin.copy:
+        src: "/root/minio.crt"
+        dest: "/home/almalinux/.mc/certs/{{ inventory_hostname }}.crt"
+        remote_src: true
+        owner: almalinux
+        group: almalinux
+        mode: "0600"
+
+    - name: Copy the certificate to the Minio client CA directory
+      # Copy the server certificate to the Minio client's CA directory.
+      ansible.builtin.copy:
+        src: "/root/minio.crt"
+        dest: "/home/almalinux/.mc/certs/CAs/local.crt"
+        remote_src: true
+        owner: almalinux
+        group: almalinux
+        mode: "0600"
+
+    - name: Create Minio data directory
+      # Create the data directory for Minio server under `/data`.
+      ansible.builtin.file:
+        path: "/data/minio"
+        state: directory
+        owner: minio-user
+        group: minio-user
+        mode: "0700"
+
+    - name: Download Minio server RPM
+      # Download the Minio server RPM package from Minio's official repository.
+      ansible.builtin.get_url:
+        url: "https://dl.min.io/server/minio/release/linux-amd64/minio.rpm"
+        dest: "/root/minio.rpm"
+
+    - name: Install Minio server RPM
+      # Install the Minio server using the downloaded RPM package.
+      ansible.builtin.shell: "dnf install -y /root/minio.rpm"
+
+    - name: Install Minio client (mc)
+      # Download and install the Minio client (mc) from Minio's official repository.
+      ansible.builtin.get_url:
+        url: "https://dl.min.io/client/mc/release/linux-amd64/mc"
+        dest: "/usr/local/bin/mc"
+        mode: "0755"
+
+    - name: Configure Minio environment file
+      # Deploy the Minio server environment file using a template.
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../files/minio.j2"
+        dest: "/etc/default/minio"
+        owner: root
+        group: minio-user
+        mode: "0640"
+
+    - name: Start and enable Minio service
+      # Start the Minio service and ensure it is enabled to start on boot.
+      ansible.builtin.systemd_service:
+        name: minio
+        state: started
+        enabled: true
+
+    - name: Copy Minio password file to almalinux directory
+      # Copy the Minio password file to the almalinux user's home directory.
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../files/.miniopass"
+        dest: "/home/almalinux/miniopass"
+        owner: almalinux
+        group: almalinux
+        mode: "0600"
+
+    - name: Configure Minio client for local access
+      # Deploy the Minio client configuration file using a template.
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../files/mc_config.json.j2"
+        dest: "/home/almalinux/.mc/config.json"
+        owner: almalinux
+        group: almalinux
+        mode: "0600"

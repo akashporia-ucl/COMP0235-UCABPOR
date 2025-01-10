@@ -1,0 +1,52 @@
+---
+# Playbook 5: Fetch and Distribute MinIO Certificate
+# This playbook ensures that the MinIO public certificate is fetched from the storage node
+# and distributed to the management and worker nodes for secure communication.
+
+- name: Notify user about Playbook 5
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 5: Fetch and Distribute MinIO Certificate - This playbook fetches the MinIO public certificate from the storage node and installs it on management and worker nodes."
+
+- name: Fetch and Distribute MinIO Certificate
+  hosts: all
+  become: true
+  tasks:
+    - name: Ensure MinIO certs directory exists
+      # Ensure that the MinIO certificates directory exists on the target node.
+      ansible.builtin.file:
+        path: /home/almalinux/.mc/certs/CAs
+        state: directory
+        owner: almalinux
+        group: almalinux
+        mode: "0755"
+
+    - name: Fetch MinIO public certificate from storage node
+      # Fetch the MinIO public certificate from the storage node to the local temporary directory on the Ansible control node.
+      ansible.builtin.fetch:
+        src: /home/minio-user/.minio/certs/public.crt
+        dest: /tmp/minio_certs/
+        flat: yes
+      delegate_to: "{{ groups['storage'][0] }}"  # Execute this task on the storage node.
+      when: inventory_hostname in groups['management'] or inventory_hostname in groups['workers']  # Only run on management and worker nodes.
+
+    - name: Copy MinIO certificate to local CAs directory
+      # Copy the fetched MinIO public certificate to the local CA directory for MinIO client usage.
+      ansible.builtin.copy:
+        src: /tmp/minio_certs/public.crt
+        dest: /home/almalinux/.mc/certs/CAs/local.crt
+        owner: almalinux
+        group: almalinux
+        mode: "0600"
+
+    - name: Verify certificate installation
+      # Verify the installation of the MinIO certificate by listing its details.
+      ansible.builtin.shell: ls -l /home/almalinux/.mc/certs/CAs/local.crt
+      register: cert_verify_output
+
+    - name: Debug certificate verification output
+      # Display the output of the certificate verification step for debugging purposes.
+      ansible.builtin.debug:
+        msg: "{{ cert_verify_output.stdout }}"

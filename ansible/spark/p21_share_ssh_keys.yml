@@ -1,0 +1,75 @@
+---
+# Playbook 21: Share SSH Keys
+# This playbook ensures the SSH keys generated on the management node are securely distributed to worker and storage nodes.
+# It sets up passwordless SSH access across the cluster.
+
+- name: Notify user about Playbook 21
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 21: Share SSH Keys - This playbook distributes the SSH keys from the management node to worker and storage nodes for passwordless SSH access."
+
+- name: Share SSH keys
+  hosts: workers:storage
+  tasks:
+    # Step 1: Ensure .ssh directory exists on remote nodes
+    - name: Ensure .ssh directory exists on remote nodes
+      # Create the `.ssh` directory with appropriate permissions on worker and storage nodes.
+      ansible.builtin.file:
+        path: /home/almalinux/.ssh
+        state: directory
+        mode: '0700'
+        owner: almalinux
+        group: almalinux
+
+    # Step 2: Fetch private key from management node to controller
+    - name: Fetch private key from management node to controller
+      # Fetch the private key from the management node to the controller node.
+      delegate_to: "{{ groups['management'][0] }}"
+      run_once: true
+      ansible.builtin.fetch:
+        src: /home/almalinux/.ssh/id_ed25519
+        dest: /tmp/id_ed25519
+        flat: true
+        fail_on_missing: true
+        mode: '0600'
+
+    # Step 3: Fetch public key from management node to controller
+    - name: Fetch public key from management node to controller
+      # Fetch the public key from the management node to the controller node.
+      delegate_to: "{{ groups['management'][0] }}"
+      run_once: true
+      ansible.builtin.fetch:
+        src: /home/almalinux/.ssh/id_ed25519.pub
+        dest: /tmp/id_ed25519.pub
+        flat: true
+        fail_on_missing: true
+        mode: '0644'
+
+    # Step 4: Distribute private key to remote nodes
+    - name: Distribute private key to remote nodes
+      # Copy the private key from the controller node to worker and storage nodes.
+      ansible.builtin.copy:
+        src: /tmp/id_ed25519
+        dest: /home/almalinux/.ssh/id_ed25519
+        mode: '0600'
+        owner: almalinux
+        group: almalinux
+
+    # Step 5: Distribute public key to remote nodes
+    - name: Distribute public key to remote nodes
+      # Copy the public key from the controller node to worker and storage nodes.
+      ansible.builtin.copy:
+        src: /tmp/id_ed25519.pub
+        dest: /home/almalinux/.ssh/id_ed25519.pub
+        mode: '0644'
+        owner: almalinux
+        group: almalinux
+
+    # Step 6: Add public key to authorized_keys
+    - name: Add public key to authorized_keys
+      # Append the public key to the `authorized_keys` file to enable passwordless SSH access.
+      ansible.builtin.shell: cat /home/almalinux/.ssh/id_ed25519.pub >> /home/almalinux/.ssh/authorized_keys
+      args:
+        creates: /home/almalinux/.ssh/authorized_keys

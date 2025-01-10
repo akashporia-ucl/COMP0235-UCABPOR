@@ -1,0 +1,8 @@
+---
+- name: Run all required playbooks in sequence to setup VMs with basic tools
+  hosts: localhost
+  gather_facts: no
+  tasks: []
+
+- import_playbook: p1_setup_all_vms.yml
+- import_playbook: p2_assign_hostnames_to_vms.yml

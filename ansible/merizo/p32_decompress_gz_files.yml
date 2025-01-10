@@ -1,0 +1,62 @@
+---
+# Playbook 32: Decompress `.pdb.gz` Files on a Single Worker
+# This playbook decompresses `.pdb.gz` files from the extracted directories to the prepared directories
+# on the first worker node.
+
+- name: Notify user about Playbook 32
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 32: Decompress .pdb.gz Files on a Single Worker - This playbook decompresses .pdb.gz files from extracted directories to prepared directories on the first worker node."
+
+- name: Decompress .pdb.gz files on a single worker
+  hosts: workers[0]  # Only the first worker node processes the files
+  become: true
+  vars:
+    datasets:
+      - name: ecoli
+        extracted_path: "/mnt/minio/dataset/ecoli/extracted"
+        prepared_path: "/mnt/minio/dataset/ecoli/prepared"
+      - name: human
+        extracted_path: "/mnt/minio/dataset/human/extracted"
+        prepared_path: "/mnt/minio/dataset/human/prepared"
+
+  tasks:
+    # Step 1: Ensure prepared directories exist
+    - name: Ensure prepared directories exist
+      # Create prepared directories for each dataset with appropriate permissions.
+      ansible.builtin.file:
+        path: "{{ item.prepared_path }}"
+        state: directory
+        mode: "0777"
+      loop: "{{ datasets }}"
+
+    # Step 2: Find all .pdb.gz files
+    - name: Find all .pdb.gz files
+      # Search for `.pdb.gz` files in the extracted directories.
+      ansible.builtin.find:
+        paths: "{{ item.extracted_path }}"
+        recurse: yes
+        patterns: "*.pdb.gz"
+      loop: "{{ datasets }}"
+      register: pdb_files
+
+    # Step 3: Debug found .pdb.gz files
+    - name: Debug found .pdb.gz files
+      # Output the list of `.pdb.gz` files found in the extracted directories.
+      ansible.builtin.debug:
+        var: pdb_files.results
+
+    # Step 4: Extract all .pdb.gz files
+    - name: Extract all .pdb.gz files
+      # Decompress `.pdb.gz` files into the prepared directories using `gunzip`.
+      ansible.builtin.shell:
+        cmd: >
+          mkdir -p {{ item.prepared_path }} &&
+          find {{ item.extracted_path }} -name '*.pdb.gz' |
+          xargs -P 4 -I {} bash -c 'gunzip -c "{}" > "{{ item.prepared_path }}/$(basename "{}" .gz)"'
+      loop: "{{ datasets }}"
+      args:
+        executable: /bin/bash
+        creates: "{{ item.prepared_path }}/some_expected_decompressed_file"  # Placeholder for decompressed content check

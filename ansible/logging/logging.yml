@@ -1,0 +1,12 @@
+---
+- name: Run all required playbooks in sequence for logging
+  hosts: localhost
+  gather_facts: no
+  tasks: []
+
+- import_playbook: p11_install_prometheus.yml
+- import_playbook: p12_install_start_node_exporter.yml
+- import_playbook: p13_configure_prometheus.yml
+- import_playbook: p14_configure_spark_metrics.yml
+- import_playbook: p15_install_and_configure_grafana.yml
+- import_playbook: p16_configure_ufw_ports.yml

@@ -1,0 +1,53 @@
+---
+# Playbook 24: Install Python Dependencies
+# This playbook ensures that Python dependencies, including PyTorch and other required packages, are installed
+# on both management and worker nodes.
+
+- name: Notify user about Playbook 24
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 24: Install Python Dependencies - This playbook installs pip, upgrades it, and installs required Python packages including PyTorch and others."
+
+- name: Install Python dependencies on management and worker nodes
+  hosts: management:workers
+  become_user: root
+  become: true
+  tasks:
+    # Step 1: Ensure pip3 is installed for Debian-based systems
+    - name: Ensure pip3 is installed (Debian-based systems)
+      # Install pip3 package on Debian-based systems.
+      ansible.builtin.apt:
+        name: python3-pip
+        state: present
+      when: ansible_os_family == "Debian"
+
+    # Step 2: Ensure pip3 is installed for Red Hat-based systems
+    - name: Ensure pip3 is installed (Red Hat-based systems)
+      # Install pip3 package on Red Hat-based systems.
+      ansible.builtin.yum:
+        name: python3-pip
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    # Step 3: Upgrade pip to the latest version
+    - name: Upgrade pip to the latest version
+      # Upgrade pip to the latest version using pip3.
+      ansible.builtin.command: pip3 install --upgrade pip
+
+    # Step 4: Install PyTorch packages (CPU-only)
+    - name: Install PyTorch packages (CPU-only)
+      # Install CPU-only versions of PyTorch, torchvision, and torchaudio from PyTorch's index URL.
+      ansible.builtin.shell: |
+        TMPDIR=/mnt/minio/tmp pip3 install --no-cache-dir \
+        torch==2.0.1+cpu torchvision==0.15.2+cpu torchaudio==2.0.2+cpu \
+        --index-url https://download.pytorch.org/whl/cpu
+
+    # Step 5: Install other Python packages
+    - name: Install other Python packages
+      # Install additional Python packages required for the project.
+      ansible.builtin.shell: |
+        TMPDIR=/mnt/minio/tmp pip3 install --no-cache-dir \
+        biopython einops matplotlib natsort networkx "numpy<2.0" \
+        rotary_embedding_torch scipy setuptools pyspark

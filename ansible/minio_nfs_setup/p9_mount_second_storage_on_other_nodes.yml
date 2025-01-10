@@ -1,0 +1,62 @@
+---
+# Playbook 9: Mount NFS Share on Client Nodes
+# This playbook mounts the NFS share from the storage node to management and worker nodes.
+# It ensures the mount is persistent across reboots and verifies the correct directory structure and permissions.
+
+- name: Notify user about Playbook 9
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 9: Mount NFS Share on Client Nodes - This playbook mounts the NFS share from the storage node to management and worker nodes."
+
+- name: Mount NFS share on client nodes
+  hosts: management:workers
+  become: true
+  tasks:
+    # Step 1: Install NFS utilities
+    - name: Install NFS utilities
+      # Install the necessary NFS utilities for mounting NFS shares.
+      ansible.builtin.package:
+        name: nfs-utils
+        state: present
+
+    # Step 2: Unmount any stale NFS mount
+    - name: Unmount stale NFS mount if exists
+      # Unmount the NFS share at `/mnt/minio` if it is already mounted to prevent conflicts.
+      ansible.builtin.shell:
+        cmd: umount -l /mnt/minio
+      register: unmount_result
+      failed_when: false  # Allow the task to succeed even if unmounting is unnecessary.
+
+    # Step 3: Ensure the mount point directory exists
+    - name: Ensure mount point exists
+      # Create the mount point directory `/mnt/minio` if it doesn't already exist.
+      ansible.builtin.file:
+        path: /mnt/minio
+        state: directory
+        mode: "0777"
+
+    # Step 4: Mount the NFS share
+    - name: Mount NFS share
+      # Mount the NFS share from the storage node to the `/mnt/minio` directory.
+      ansible.builtin.mount:
+        path: /mnt/minio
+        src: "{{ groups['storage'][0] }}:/data/minio"
+        fstype: nfs
+        opts: rw  # Mount the share with read-write permissions.
+        state: mounted
+
+    # Step 5: Ensure the NFS mount persists across reboots
+    - name: Ensure mount persists across reboots
+      # Add an entry in `/etc/fstab` to ensure the NFS mount is re-established after a reboot.
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        line: "{{ groups['storage'][0] }}:/data/minio /mnt/minio nfs rw 0 0"
+        state: present
+
+    # Step 6: Set permissions for the mount point directory
+    - name: Ensure /mnt/minio directory permissions
+      # Ensure the `/mnt/minio` directory has the correct permissions for usage.
+      ansible.builtin.command:
+        cmd: chmod 0777 /mnt/minio

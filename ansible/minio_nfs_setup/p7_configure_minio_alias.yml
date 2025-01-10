@@ -1,0 +1,29 @@
+---
+# Playbook 7: Configure MinIO Alias for Workers and Management
+# This playbook sets up an `mc` alias for the MinIO client on worker and management nodes.
+
+- name: Notify user about Playbook 7
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 7: Configure MinIO Alias for Workers and Management - This playbook sets up the mc alias for MinIO client on worker and management nodes."
+
+- name: Configure mc alias for workers and management
+  hosts: workers:management
+  become: true
+  become_user: almalinux
+  tasks:
+    - name: Configure mc alias
+      # Configure the MinIO client alias using the existing miniopass file on the remote nodes.
+      ansible.builtin.shell: |
+        /usr/local/bin/mc alias set local https://{{ groups['storage'][0] }}:9000 myminioadmin $(cat /home/almalinux/miniopass)
+      args:
+        executable: /bin/bash
+      register: mc_alias_result
+      failed_when: "'Unable to initialize new alias' in mc_alias_result.stderr"
+
+    - name: Debug mc alias result
+      # Debug the result of the mc alias configuration task.
+      ansible.builtin.debug:
+        var: mc_alias_result

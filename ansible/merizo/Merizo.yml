@@ -1,0 +1,14 @@
+- name: Run all required playbooks in sequence to set up Merizo project
+  hosts: localhost
+  gather_facts: no
+  tasks: []
+
+- import_playbook: p24_install_dependencies.yml
+- import_playbook: p25_configure_permissions_and_environment.yml
+- import_playbook: p26_setup_merizo_project.yml
+- import_playbook: p27_setup_merizo_algorithm_trigger.yml
+- import_playbook: p28_setup_output_directories.yml
+- import_playbook: p29_grant_permissions.yml
+- import_playbook: p30_download_dataset_to_raw_folders.yml
+- import_playbook: p31_extract_tar_files.yml
+- import_playbook: p32_decompress_gz_files.yml

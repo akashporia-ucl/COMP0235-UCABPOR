@@ -1,0 +1,11 @@
+- name: Run all required playbooks in sequence to run merizo pipeline
+  hosts: localhost
+  gather_facts: no
+  tasks: []
+
+- import_playbook: provision/provision.yml
+- import_playbook: minio_nfs_setup/MinIO_NFS.yml
+- import_playbook: logging/logging.yml
+- import_playbook: spark/Spark.yml
+- import_playbook: merizo/Merizo.yml
+- import_playbook: run/run.yml

@@ -1,0 +1,51 @@
+---
+# Playbook 28: Create Directories and Set Ownership and Permissions
+# This playbook creates directories for E. coli and human datasets on the management node, 
+# and ensures proper ownership and permissions are set.
+
+- name: Notify user about Playbook 28
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 28: Create Directories and Set Ownership and Permissions - This playbook creates dataset directories for E. coli and human on the management node and sets the required ownership and permissions."
+
+- name: Create directories and set ownership and permissions manually
+  hosts: management
+  become: yes
+  tasks:
+    # Step 1: Create directory for E. coli dataset output
+    - name: Create ecoli output directory
+      # Ensure the directory `/mnt/minio/dataset/ecoli/output` exists.
+      ansible.builtin.command:
+        cmd: mkdir -p /mnt/minio/dataset/ecoli/output
+
+    # Step 2: Set ownership for E. coli dataset directory
+    - name: Set ownership for ecoli output directory
+      # Set ownership of `/mnt/minio/dataset/ecoli/output` to `almalinux:almalinux`.
+      ansible.builtin.command:
+        cmd: chown -R almalinux:almalinux /mnt/minio/dataset/ecoli/output
+
+    # Step 3: Set permissions for E. coli dataset directory
+    - name: Set permissions for ecoli output directory
+      # Set permissions of `/mnt/minio/dataset/ecoli/output` to `775`.
+      ansible.builtin.command:
+        cmd: chmod -R 775 /mnt/minio/dataset/ecoli/output
+
+    # Step 4: Create directory for human dataset output
+    - name: Create human output directory
+      # Ensure the directory `/mnt/minio/dataset/human/output` exists.
+      ansible.builtin.command:
+        cmd: mkdir -p /mnt/minio/dataset/human/output
+
+    # Step 5: Set ownership for human dataset directory
+    - name: Set ownership for human output directory
+      # Set ownership of `/mnt/minio/dataset/human/output` to `almalinux:almalinux`.
+      ansible.builtin.command:
+        cmd: chown -R almalinux:almalinux /mnt/minio/dataset/human/output
+
+    # Step 6: Set permissions for human dataset directory
+    - name: Set permissions for human output directory
+      # Set permissions of `/mnt/minio/dataset/human/output` to `775`.
+      ansible.builtin.command:
+        cmd: chmod -R 775 /mnt/minio/dataset/human/output

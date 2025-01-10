@@ -1,0 +1,39 @@
+---
+# Playbook 4: Set Up Minio RPM and CLI
+# This playbook installs or updates the Minio server and Minio client (mc) by downloading and installing the required RPM
+# and binaries.
+
+- name: Notify user about Playbook 4
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 4: Set Up Minio RPM and CLI - This playbook installs or updates the Minio server and client binaries."
+
+- name: Set up Minio
+  become: true
+  become_user: root
+  hosts: all
+  tasks:
+    - name: Delete old Minio RPM
+      # Ensure any previously downloaded Minio RPM file is deleted to avoid conflicts with updates.
+      ansible.builtin.file:
+        path: "/root/minio.rpm"
+        state: absent
+
+    - name: Download Minio server RPM
+      # Download the latest Minio server RPM package from the official Minio repository.
+      ansible.builtin.get_url:
+        dest: "/root/minio.rpm"
+        url: "https://dl.min.io/server/minio/release/linux-amd64/minio.rpm"
+
+    - name: Install Minio server RPM
+      # Install the Minio server using the downloaded RPM package.
+      ansible.builtin.shell: dnf install -y /root/minio.rpm
+
+    - name: Download and install Minio client (mc)
+      # Download the Minio client (mc) binary from the official Minio repository and set appropriate permissions.
+      ansible.builtin.get_url:
+        dest: /usr/local/bin/mc
+        url: "https://dl.min.io/client/mc/release/linux-amd64/mc"
+        mode: "0755"

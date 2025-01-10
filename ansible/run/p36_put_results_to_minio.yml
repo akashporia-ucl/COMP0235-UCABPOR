@@ -1,0 +1,76 @@
+---
+# Playbook 36: Create MinIO Bucket and Upload Files
+# This playbook ensures the MinIO Client is installed, creates a bucket, uploads files to the bucket,
+# and verifies their presence using dynamic IPs from the inventory.
+
+- name: Notify user about Playbook 36
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 36: Create MinIO Bucket and Upload Files - This playbook ensures the MinIO Client is installed, creates a bucket, uploads files, and verifies their presence on the storage node."
+
+- name: Create MinIO bucket and upload files
+  hosts: management
+  become: true
+  vars:
+    minio_host: "{{ hostvars[groups['storage'][0]].inventory_hostname }}"  # Dynamically fetch storage node IP
+    mc_env:
+      MC_HOST_local: "https://myminioadmin:_Z3-hzoOgLajvVP1@{{ minio_host }}:9000"
+
+  tasks:
+    # Step 1: Ensure the MinIO Client (mc) is installed
+    - name: Ensure the MinIO Client (mc) is installed
+      # Check if the MinIO Client (mc) is installed and accessible.
+      shell: |
+        /usr/local/bin/mc --version
+      environment: "{{ mc_env }}"
+      register: mc_version
+      changed_when: false
+      failed_when: mc_version.rc != 0
+
+    # Step 2: Create MinIO bucket
+    - name: Create MinIO bucket
+      # Create the MinIO bucket named "summary" if it does not already exist.
+      shell: "/usr/local/bin/mc --insecure mb local/summary"
+      environment: "{{ mc_env }}"
+      register: create_bucket
+      changed_when: create_bucket.rc == 0
+      failed_when: "'already own it' not in create_bucket.stderr and create_bucket.rc != 0"
+
+    # Step 3: Copy plDDT_means.csv to MinIO bucket
+    - name: Copy plDDT_means.csv to MinIO bucket
+      # Upload the file plDDT_means.csv to the "summary" bucket.
+      shell: "/usr/local/bin/mc --insecure cp /mnt/minio/Merizo/Merizo/plDDT_means.csv local/summary/"
+      environment: "{{ mc_env }}"
+      register: copy_plddt
+      failed_when: copy_plddt.rc != 0
+
+    # Step 4: Copy human_cath_summary.csv to MinIO bucket
+    - name: Copy human_cath_summary.csv to MinIO bucket
+      # Upload the file human_cath_summary.csv to the "summary" bucket.
+      shell: "/usr/local/bin/mc --insecure cp /mnt/minio/Merizo/Merizo/human_cath_summary.csv local/summary/"
+      environment: "{{ mc_env }}"
+      register: copy_human
+      failed_when: copy_human.rc != 0
+
+    # Step 5: Copy ecoli_cath_summary.csv to MinIO bucket
+    - name: Copy ecoli_cath_summary.csv to MinIO bucket
+      # Upload the file ecoli_cath_summary.csv to the "summary" bucket.
+      shell: "/usr/local/bin/mc --insecure cp /mnt/minio/Merizo/Merizo/ecoli_cath_summary.csv local/summary/"
+      environment: "{{ mc_env }}"
+      register: copy_ecoli
+      failed_when: copy_ecoli.rc != 0
+
+    # Step 6: Verify files in the MinIO bucket
+    - name: Verify files in the MinIO bucket
+      # List the files in the "summary" bucket to verify successful uploads.
+      shell: "/usr/local/bin/mc --insecure ls local/summary/"
+      environment: "{{ mc_env }}"
+      register: verify_files
+
+    # Step 7: Display verification output
+    - name: Display verification output
+      # Debug the output of the file listing in the bucket.
+      debug:
+        msg: "{{ verify_files.stdout }}"

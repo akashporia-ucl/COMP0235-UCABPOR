@@ -1,0 +1,41 @@
+server {
+    listen 80;
+
+    # Spark Web UI
+    server_name spark;
+    location /spark {
+        proxy_pass http://{{ management_ip }}:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Prometheus
+    server_name prometheus;
+    location /prometheus {
+        proxy_pass http://{{ management_ip }}:9090;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Grafana
+    server_name grafana;
+    location /grafana {
+        proxy_pass http://{{ management_ip }}:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Node Exporter for all workers
+    {% for ip in nodeexporter_ips %}
+    server_name nodeexporter{{ loop.index }};
+    location /nodeexporter/{{ loop.index }} {
+        proxy_pass http://{{ ip }}:9100;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+    {% endfor %}
+}

@@ -1,0 +1,68 @@
+---
+# Playbook 25: Configure Permissions and Environment Setup
+# This playbook ensures the required directories are created and have proper permissions, and sets up environment
+# variables for the worker nodes and management nodes.
+
+- name: Notify user about Playbook 25
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 25: Configure Permissions and Environment Setup - This playbook ensures directory creation, permissions setup, and environment variables for worker and management nodes."
+
+- name: Configure permissions and environment setup
+  hosts: all
+  become: true
+  tasks:
+    # Step 1: Ensure /data/minio/temp exists on the storage node
+    - name: Ensure /data/minio/temp exists on storage node
+      # Create the directory `/data/minio/temp` on the storage node.
+      ansible.builtin.file:
+        path: /data/minio/temp
+        state: directory
+      when: "inventory_hostname in groups['storage']"
+
+    # Step 2: Ensure /temp exists on all nodes
+    - name: Ensure /temp exists on all nodes
+      # Create the directory `/temp` on all nodes.
+      ansible.builtin.file:
+        path: /temp
+        state: directory
+
+    # Step 3: Set execute permissions on /mnt/minio
+    - name: Set execute permission on /mnt/minio
+      # Set execute permissions on `/mnt/minio` for worker and management nodes.
+      ansible.builtin.command:
+        cmd: chmod +x /mnt/minio
+      when: "inventory_hostname in groups['workers'] or inventory_hostname in groups['management']"
+
+    # Step 4: Set full permissions on /mnt/minio/temp
+    - name: Set full permissions on /mnt/minio/temp
+      # Set full (777) permissions on `/mnt/minio/temp` for worker and management nodes.
+      ansible.builtin.command:
+        cmd: chmod 777 /mnt/minio/temp
+      when: "inventory_hostname in groups['workers'] or inventory_hostname in groups['management']"
+
+    # Step 5: Add environment variable PWD to worker nodes
+    - name: Add export PWD=/mnt/minio to worker nodes
+      # Add the line `export PWD=/mnt/minio` to `/etc/profile` for worker nodes.
+      ansible.builtin.lineinfile:
+        path: /etc/profile
+        line: "export PWD=/mnt/minio"
+        state: present
+      when: "inventory_hostname in groups['workers']"
+
+    # Step 6: Ensure /mnt/minio/logs exists on all nodes
+    - name: Ensure /mnt/minio/logs exists on all nodes
+      # Create the directory `/mnt/minio/logs` on all nodes with full permissions.
+      ansible.builtin.file:
+        path: /mnt/minio/logs
+        state: directory
+        mode: "0777"
+
+    # Step 7: Grant full permissions on /mnt/minio/logs
+    - name: Grant full permissions on /mnt/minio/logs
+      # Set full (777) permissions on `/mnt/minio/logs` for worker and management nodes.
+      ansible.builtin.command:
+        cmd: chmod 777 /mnt/minio/logs
+      when: "inventory_hostname in groups['workers'] or inventory_hostname in groups['management']"

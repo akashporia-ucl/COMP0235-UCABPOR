@@ -1,0 +1,82 @@
+---
+# Playbook 26: Set Up Merizo Project
+# This playbook creates the required directories for the Merizo project on `/mnt/minio`
+# and ensures proper ownership and permissions.
+
+- name: Notify user about Playbook 26
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 26: Set Up Merizo Project - This playbook creates the Merizo project directory and a temporary directory on /mnt/minio with proper ownership and permissions."
+
+- name: Set up Merizo project on /mnt/minio
+  hosts: management
+  become: true
+  tasks:
+    # Task 1: Ensure the base directory for the Merizo project exists
+    - name: Ensure Merizo directory exists
+      file:
+        path: /mnt/minio/Merizo
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    # Task 2: Create a temporary directory for intermediate operations
+    - name: Create a temporary directory for operations
+      file:
+        path: /mnt/minio/tmp
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    # Task 3: Download the cath_foldclassdb.tar.gz file using wget
+    - name: Download cath_foldclassdb.tar.gz using wget
+      command: >
+        wget -O /mnt/minio/Merizo/cath_foldclassdb.tar.gz
+        http://bioinfadmin.cs.ucl.ac.uk/downloads/merizo_search/cath_foldclassdb.tar.gz
+      environment:
+        TMPDIR: /mnt/minio/tmp
+      args:
+        creates: /mnt/minio/Merizo/cath_foldclassdb.tar.gz
+
+    # Task 4: Extract the tar.gz file to the Merizo directory
+    - name: Extract cath_foldclassdb.tar.gz within /mnt/minio/Merizo
+      unarchive:
+        src: /mnt/minio/Merizo/cath_foldclassdb.tar.gz
+        dest: /mnt/minio/Merizo
+        remote_src: yes
+        owner: root
+        group: root
+      environment:
+        TMPDIR: /mnt/minio/tmp
+
+    # Task 5: Ensure subdirectory for the merizo_search repository
+    - name: Ensure subdirectory for merizo_search repository
+      file:
+        path: /mnt/minio/Merizo/merizo_search
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    # Task 6: Clone the merizo_search repository from GitHub
+    - name: Clone the merizo_search repository from GitHub
+      git:
+        repo: https://github.com/psipred/merizo_search.git
+        dest: /mnt/minio/Merizo/merizo_search
+        version: main
+        force: yes
+        update: yes
+      become: true
+
+    # Task 7: Ensure subdirectory for Merizo repository
+    - name: Ensure subdirectory for Merizo repository
+      file:
+        path: /mnt/minio/Merizo/Merizo
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'

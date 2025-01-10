@@ -1,0 +1,44 @@
+---
+# Playbook 6: Configure MinIO Client on All Nodes
+# This playbook installs the MinIO client (mc) on all nodes, ensures the required `.mc` directory exists,
+# and deploys the `mc_config.json` configuration file for MinIO client usage.
+
+- name: Notify user about Playbook 6
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 6: Configure MinIO Client on All Nodes - This playbook installs the MinIO client, ensures the .mc directory exists, and deploys the client configuration file."
+
+- name: Configure mc client on all nodes
+  hosts: all
+  become: true
+  tasks:
+    # Step 1: Download MinIO client (mc)
+    - name: Download MinIO client (mc)
+      # Download the latest MinIO client (mc) binary from the official MinIO repository
+      # and place it in the `/usr/local/bin` directory with the appropriate permissions.
+      ansible.builtin.get_url:
+        url: "https://dl.min.io/client/mc/release/linux-amd64/mc"
+        dest: "/usr/local/bin/mc"
+        mode: "0755"
+
+    # Step 2: Ensure .mc directory exists
+    - name: Ensure .mc directory exists
+      # Create the `.mc` directory under `/root` for the MinIO client configuration files.
+      ansible.builtin.file:
+        path: /root/.mc
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    # Step 3: Deploy mc_config.json
+    - name: Deploy mc_config.json file
+      # Deploy the `mc_config.json` template to the `.mc` directory for MinIO client configuration.
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../files/mc_config.json.j2"  # Dynamic path to the template.
+        dest: /root/.mc/config.json
+        owner: root
+        group: root
+        mode: "0600"

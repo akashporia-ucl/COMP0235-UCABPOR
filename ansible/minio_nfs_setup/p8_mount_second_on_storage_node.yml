@@ -1,0 +1,140 @@
+---
+# Playbook 8: Configure and Mount Second Disk on Storage Node
+# This playbook configures and mounts a second disk on the storage node, ensures it is formatted, mounted,
+# and shared via NFS for MinIO usage. It also ensures the setup persists across reboots.
+
+- name: Notify user about Playbook 8
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 8: Configure and Mount Second Disk on Storage Node - This playbook formats and mounts a second disk on the storage node and configures NFS for sharing."
+
+- name: Configure and mount second disk on storage node
+  hosts: storage
+  become: true
+  tasks:
+    # Step 1: Install necessary utilities
+    - name: Install necessary utilities
+      # Install NFS utilities and disk management tools required for formatting and partitioning.
+      ansible.builtin.package:
+        name:
+          - nfs-utils
+          - util-linux
+          - gdisk  # Provides sgdisk for partition management
+        state: present
+
+    # Step 2: Check if the disk is already mounted
+    - name: Check if the disk is mounted
+      # Check if `/dev/vdb` is already mounted.
+      ansible.builtin.shell:
+        cmd: mount | grep /dev/vdb
+      register: disk_mounted
+      failed_when: false  # Don't fail if the disk is not mounted.
+
+    # Step 3: Unmount the disk if mounted
+    - name: Force unmount the disk if it is mounted
+      # Force unmount the disk if it is already mounted.
+      ansible.builtin.shell:
+        cmd: umount -l /dev/vdb
+      when: disk_mounted.rc == 0
+      ignore_errors: true
+
+    # Step 4: Kill processes using the disk
+    - name: Kill processes using the disk
+      # Kill any processes using `/dev/vdb` to ensure it can be formatted.
+      ansible.builtin.shell:
+        cmd: fuser -k /dev/vdb
+      ignore_errors: true
+
+    # Step 5: Handle multipath and device-mapper locks
+    - name: Deactivate multipath devices if present
+      # Deactivate multipath devices if they exist for `/dev/vdb`.
+      ansible.builtin.shell:
+        cmd: multipath -f
+      ignore_errors: true
+
+    - name: Release any device-mapper locks
+      # Remove all device-mapper locks on the system to avoid conflicts.
+      ansible.builtin.shell:
+        cmd: dmsetup remove_all
+      ignore_errors: true
+
+    # Step 6: Flush disk buffers
+    - name: Flush disk buffers
+      # Flush any remaining buffers on `/dev/vdb` to ensure a clean setup.
+      ansible.builtin.shell:
+        cmd: blockdev --flushbufs /dev/vdb
+      ignore_errors: true
+
+    # Step 7: Partition and format the disk
+    - name: Remove existing partitions on the disk using sgdisk
+      # Remove all existing partitions on `/dev/vdb` using `sgdisk`.
+      ansible.builtin.shell:
+        cmd: sgdisk --zap-all /dev/vdb
+      ignore_errors: false
+
+    - name: Ensure no active references to the disk
+      # Kill any processes referencing `/dev/vdb` to prevent errors during partitioning.
+      ansible.builtin.shell:
+        cmd: |
+          for pid in $(lsof | grep /dev/vdb | awk '{print $2}' | sort -u); do
+            kill -9 $pid;
+          done
+      ignore_errors: true
+
+    - name: Partition and format the second disk
+      # Create a single GPT partition and format it as ext4.
+      ansible.builtin.shell: |
+        parted /dev/vdb --script mklabel gpt mkpart primary ext4 0% 100%
+        mkfs.ext4 /dev/vdb
+      ignore_errors: false
+
+    # Step 8: Create and mount the data directory
+    - name: Ensure /data/minio directory exists
+      # Ensure the `/data/minio` directory exists for mounting the disk.
+      ansible.builtin.file:
+        path: /data/minio
+        state: directory
+        mode: "0777"
+
+    - name: Mount the second disk
+      # Mount the newly formatted disk to `/data/minio`.
+      ansible.builtin.mount:
+        path: /data/minio
+        src: /dev/vdb
+        fstype: ext4
+        opts: defaults
+        state: mounted
+
+    - name: Ensure /data/minio mount persists across reboots
+      # Add an entry in `/etc/fstab` to ensure the mount persists across reboots.
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        line: "/dev/vdb /data/minio ext4 defaults 0 0"
+        state: present
+
+    # Step 9: Configure NFS export
+    - name: Add NFS export to /etc/exports
+      # Add `/data/minio` to `/etc/exports` for sharing via NFS.
+      ansible.builtin.lineinfile:
+        path: /etc/exports
+        line: "/data/minio *(rw,sync,no_root_squash)"
+        state: present
+
+    - name: Set permissions for /data/minio directory
+      # Ensure the `/data/minio` directory has the correct permissions.
+      ansible.builtin.command:
+        cmd: chmod 0777 /data/minio
+
+    - name: Re-export NFS shares
+      # Re-export the NFS shares to apply changes.
+      ansible.builtin.command:
+        cmd: exportfs -r
+
+    - name: Restart NFS service
+      # Restart the NFS service to apply the new configuration.
+      ansible.builtin.systemd:
+        name: nfs-server
+        state: restarted
+        enabled: true

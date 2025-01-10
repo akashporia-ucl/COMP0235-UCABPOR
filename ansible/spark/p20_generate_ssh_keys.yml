@@ -1,0 +1,35 @@
+---
+# Playbook 20: Generate Shared SSH Keys
+# This playbook generates a shared SSH key pair on the management node and adds the public key to the authorized_keys file
+# for seamless SSH access across the cluster.
+
+- name: Notify user about Playbook 20
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 20: Generate Shared SSH Keys - This playbook creates an SSH key pair and configures it for seamless access from the management node."
+
+- name: Generate shared SSH keys
+  hosts: management
+  tasks:
+    # Step 1: Ensure the .ssh directory exists
+    - name: Ensure .ssh directory exists
+      # Create the `.ssh` directory with secure permissions if it does not already exist.
+      ansible.builtin.file:
+        path: /home/almalinux/.ssh/
+        state: directory
+        mode: '0700'
+
+    # Step 2: Generate an SSH key pair
+    - name: Regenerate SSH key pair
+      # Create an SSH key pair (using ed25519) if it does not already exist.
+      # The `creates` argument ensures this task does not run if the key file already exists.
+      ansible.builtin.shell: ssh-keygen -q -t ed25519 -f /home/almalinux/.ssh/id_ed25519 -C "" -N ""
+      args:
+        creates: /home/almalinux/.ssh/id_ed25519
+
+    # Step 3: Add the public key to authorized_keys
+    - name: Add public key to authorized_keys
+      # Append the generated public key to the `authorized_keys` file for passwordless SSH access.
+      ansible.builtin.shell: cat /home/almalinux/.ssh/id_ed25519.pub >> /home/almalinux/.ssh/authorized_keys

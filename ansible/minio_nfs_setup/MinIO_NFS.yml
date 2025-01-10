@@ -1,0 +1,15 @@
+---
+- name: Run all required playbooks in sequence to setup Minio and NFS
+  hosts: localhost
+  gather_facts: no
+  tasks: []
+
+- import_playbook: p3_install_minio.yml
+- import_playbook: p4_update_minio.yml   
+- import_playbook: p5_distribute_minio_certificate.yml
+- import_playbook: p6_configure_minio_client.yml
+- import_playbook: p7_configure_minio_alias.yml
+- import_playbook: p8_mount_second_on_storage_node.yml
+- import_playbook: p9_mount_second_storage_on_other_nodes.yml
+#- import_playbook: p2_assign_hostnames_to_vms.yml
+- import_playbook: p10_configure_minio_to_second_mounted_disk.yml

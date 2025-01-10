@@ -1,0 +1,39 @@
+---
+# Playbook 35: Collate Results from `.parsed` Files for Human Dataset
+# This playbook executes a Python script to collate results from `.parsed` files for the human dataset
+# and displays the output or errors if the script fails.
+
+- name: Notify user about Playbook 35
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 35: Collate Results from .parsed Files for Human Dataset - This playbook executes a Python script to summarize .parsed files for the human dataset on the management node."
+
+- name: Collate Results from .parsed Files for Human Dataset
+  hosts: management
+  become_user: root
+  become: yes
+  tasks:
+    # Step 1: Execute Python script to collate .parsed files
+    - name: Execute Python script to collate .parsed files
+      # Run the Python script `summary.py` to summarize `.parsed` files for the human dataset.
+      shell: |
+        cd /mnt/minio/Merizo/Merizo &&
+        python3 summary.py
+      args:
+        chdir: /mnt/minio/Merizo/Merizo
+      register: summary_script_output
+
+    # Step 2: Display the output of the Python script
+    - name: Display the output of the Python script
+      # Debug the output from the Python script execution.
+      debug:
+        msg: "{{ summary_script_output.stdout }}"
+
+    # Step 3: Display an error if the script fails
+    - name: Display an error if the script fails
+      # Debug the error output from the Python script if it fails.
+      debug:
+        msg: "{{ summary_script_output.stderr }}"
+      when: summary_script_output.rc != 0

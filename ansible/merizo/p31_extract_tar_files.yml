@@ -1,0 +1,44 @@
+---
+# Playbook 31: Extract `.tar` Files to Extracted Folders
+# This playbook extracts dataset tar files from raw folders into designated extracted folders on the first worker node.
+
+- name: Notify user about Playbook 31
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 31: Extract .tar Files to Extracted Folders - This playbook extracts dataset tar files into extracted folders on the first worker node."
+
+- name: Extract .tar files to extracted folders
+  hosts: workers[0]  # Only the first worker extracts the files
+  become: true
+  vars:
+    datasets:
+      - name: ecoli
+        raw_path: "/mnt/minio/dataset/ecoli/raw"
+        extracted_path: "/mnt/minio/dataset/ecoli/extracted"
+      - name: human
+        raw_path: "/mnt/minio/dataset/human/raw"
+        extracted_path: "/mnt/minio/dataset/human/extracted"
+
+  tasks:
+    # Step 1: Ensure extracted directories exist
+    - name: Ensure extracted directories exist
+      # Create extracted directories for each dataset with appropriate permissions.
+      ansible.builtin.file:
+        path: "{{ item.extracted_path }}"
+        state: directory
+        mode: "0777"
+      loop: "{{ datasets }}"
+
+    # Step 2: Extract .tar files
+    - name: Extract .tar files
+      # Extract the dataset tar files into the corresponding extracted directories.
+      ansible.builtin.shell:
+        cmd: >
+          mkdir -p {{ item.extracted_path }} &&
+          tar -xf {{ item.raw_path }}/{{ item.name }}.tar -C {{ item.extracted_path }}
+      loop: "{{ datasets }}"
+      args:
+        executable: /bin/bash
+        creates: "{{ item.extracted_path }}/some_expected_file_or_directory"  # Placeholder for extracted content check

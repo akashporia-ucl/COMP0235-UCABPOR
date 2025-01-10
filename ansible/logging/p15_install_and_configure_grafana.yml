@@ -1,0 +1,39 @@
+---
+# Playbook 15: Install and Configure Grafana
+# This playbook installs Grafana on the management node, configures a data source for Prometheus,
+# and ensures the Grafana service is started and enabled.
+
+- name: Notify user about Playbook 15
+  hosts: localhost
+  tasks:
+    - name: Display playbook message
+      ansible.builtin.debug:
+        msg: "Running Playbook 15: Install and Configure Grafana - This playbook installs Grafana, configures a Prometheus data source, and starts the Grafana service."
+
+- name: Install and Configure Grafana
+  hosts: management
+  become: yes
+  tasks:
+    # Step 1: Install Grafana
+    - name: Install Grafana
+      # Install Grafana package from the system's package manager.
+      ansible.builtin.dnf:
+        name: grafana
+        state: present
+
+    # Step 2: Configure Grafana Data Source
+    - name: Configure Grafana Data Source
+      # Deploy the Grafana data source configuration file for Prometheus.
+      # The template file defines the connection settings for Grafana to access Prometheus.
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../files/grafana_datasource.yml.j2"  # Dynamic path to the template file.
+        dest: /etc/grafana/provisioning/datasources/prometheus.yml
+        mode: '0644'
+
+    # Step 3: Start Grafana Service
+    - name: Start Grafana
+      # Start the Grafana service and enable it to start on boot.
+      ansible.builtin.systemd:
+        name: grafana-server
+        enabled: true
+        state: started
