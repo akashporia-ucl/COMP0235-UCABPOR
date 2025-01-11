@@ -27,13 +27,17 @@
         --deploy-mode client \
         --executor-memory 24G \
         --executor-cores 2 \
-        --num-executors 6 \
+        --conf spark.dynamicAllocation.enabled=true \
+        --conf spark.dynamicAllocation.minExecutors=5 \
+        --conf spark.dynamicAllocation.maxExecutors=10 \
+        --conf spark.default.parallelism=40 \
         --conf spark.rpc.message.maxSize=2047 \
         --conf spark.network.timeout=600s \
         --conf spark.eventLog.enabled=true \
         --conf spark.eventLog.dir=/mnt/minio/logs \
         --conf spark.executor.heartbeatInterval=60s \
         --conf spark.ui.port=4050 \
+        --conf spark.speculation=false \
         --files results_parser.py \
         pipeline_script.py /mnt/minio/dataset/human/prepared /mnt/minio/dataset/human/output
       args:

@@ -1,0 +1,13 @@
+---
+# Playbook 37: Run SCP CSV files from Management node
+# This playbook copies CSV files from the management node to the local machine.
+- name: SCP CSV files from Management node
+  hosts: management
+  gather_facts: no
+  tasks:
+    - name: Copy CSV files from Management node to local
+      ansible.builtin.shell:
+        cmd: "scp almalinux@{{ inventory_hostname }}:/mnt/minio/Merizo/Merizo/*.csv ./"
+        # Adjust the local path './' to the desired location
+      become: no
+      delegate_to: localhost

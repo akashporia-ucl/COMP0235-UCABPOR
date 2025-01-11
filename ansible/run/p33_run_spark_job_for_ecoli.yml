@@ -25,15 +25,19 @@
         $SPARK_HOME/bin/spark-submit \
         --master spark://management:7077 \
         --deploy-mode client \
-        --executor-memory 24G \
+        --executor-memory 20G \
         --executor-cores 2 \
-        --num-executors 6 \
+        --conf spark.dynamicAllocation.enabled=true \
+        --conf spark.dynamicAllocation.minExecutors=3 \
+        --conf spark.dynamicAllocation.maxExecutors=6 \
+        --conf spark.default.parallelism=24 \
         --conf spark.rpc.message.maxSize=2047 \
         --conf spark.network.timeout=600s \
         --conf spark.eventLog.enabled=true \
         --conf spark.eventLog.dir=/mnt/minio/logs \
         --conf spark.executor.heartbeatInterval=60s \
         --conf spark.ui.port=4050 \
+        --conf spark.speculation=true \
         --files results_parser.py \
         pipeline_script.py /mnt/minio/dataset/ecoli/prepared /mnt/minio/dataset/ecoli/output
       args:
