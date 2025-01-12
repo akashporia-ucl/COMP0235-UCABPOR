@@ -6,7 +6,7 @@
   gather_facts: no
   vars:
     management_group: "management"  # The group name for management nodes in inventory
-    destination_path: "./"          # Local destination path for the CSV files
+    destination_path: "../../"          # Local destination path for the CSV files
   tasks:
     - name: Fetch the management node IP dynamically
       ansible.builtin.set_fact:

@@ -8,3 +8,4 @@
 - import_playbook: p34_run_spark_job_for_human.yml
 - import_playbook: p34_run_spark_job_for_human.yml
 - import_playbook: p36_put_results_to_minio.yml
+- import_playbook: p37_copy_csv_result_to_local.yml
