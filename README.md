@@ -67,27 +67,32 @@ This repository contains the infrastructure and configuration for the COMP0235 U
 
 1. Clone the repository:
 
-    `sh
-    git clone <repository-url>
-    cd <repository-directory>
-
-    `
+    ```sh
+    git clone https://github.com/akashporia-ucl/COMP0235-UCABPOR
+    cd COMP0235-UCABPOR
+    ```
 
 2. Initialize and apply the Terraform configuration:
 
-    `
+    ```sh
     cd terraform
     terraform init
-    terraform apply```
+    terraform apply
+    ```
 
-    ````
+    Update values in variable.tf for username, ssh keys, network etc
 
 3. Generate the Ansible inventory:
 
+    ```sh
     python3 generate_inventory.py
+    ```
 
 4. Run the Ansible playbooks:
-    
+
+    ```sh
     cd ../ansible
     ansible-playbook -i inventory.yaml full.yml
-    
+    ```
+
+5. Results (csv files) will be available in repo and can also be accessed via GUI
