@@ -116,3 +116,10 @@ Ansible playbooks in this repository follow the naming format **p<order of execu
 
 - Use **screen** or **tmux** to run Terraform and Ansible commands in a persistent session, especially for long-running tasks.
 - The execution sequence of playbooks can be inferred from their `p<order>_name` naming convention.
+
+## URLs:
+
+- **Spark:** https://spark-ucabpor.comp0235.condenser.arc.ucl.ac.uk/
+- **Promtheus:** https://prometheus-ucabpor.comp0235.condenser.arc.ucl.ac.uk/targets
+- **Grafana:** https://ucabpor-cons.comp0235.condenser.arc.ucl.ac.uk/ [ Username: *admin* | Password: *admin* ]
+- **MinIO:** https://ucabpor-cons.comp0235.condenser.arc.ucl.ac.uk/ [ Username: *myminioadmin* | Password: (Present in .miniopass at /ansible/minio_nfs_setup) ]
